@@ -7,7 +7,7 @@ The API allows you to programmatically interact with all
 of your Equinix Metal resources, including devices, networks, addresses, organizations,
 projects, and your user account. Every feature of the Equinix Metal web interface is accessible through the API.
 
-The API docs are generated from the Equinix Metal OpenAPI specification and are officially hosted at <https://metal.equinix.com/developers/api>.
+The API docs are generated from the Equinix Metal OpenAPI specification and are officially hosted at <https://deploy.equinix.com/developers/api/metal/>.
 
 # Common Parameters
 
