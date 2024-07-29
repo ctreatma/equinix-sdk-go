@@ -13,6 +13,7 @@ properties:
     format: date-time
     type: string
   logo:
+    deprecated: true
     description: The logo for the organization; must be base64-encoded image data
     format: byte
     type: string
