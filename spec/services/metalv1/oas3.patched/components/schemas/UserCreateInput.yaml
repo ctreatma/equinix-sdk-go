@@ -1,5 +1,6 @@
 properties:
   avatar:
+    deprecated: true
     format: binary
     type: string
   company_name:
