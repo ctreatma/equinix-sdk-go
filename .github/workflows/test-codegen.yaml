@@ -4,6 +4,12 @@ name: Generate and lint code
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: "The Pull Request to validate"
+        required: true
+        type: number
 
 jobs:
   test:
