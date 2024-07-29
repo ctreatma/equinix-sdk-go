@@ -81,3 +81,13 @@ jobs:
       run: |
         echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
         echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
+    - name: Manually trigger code validation
+      if: ${{ steps.cpr.outputs.pull-request-number }}
+      run: gh workflow run .github/workflows/test-codegen.yaml --ref=${{ steps.cpr.outputs.pull-request-pull-request-head-sha }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+    - name: Manually trigger PR title validation
+      if: ${{ steps.cpr.outputs.pull-request-number }}
+      run: gh workflow run .github/workflows/validate_pr.yaml --ref=${{ steps.cpr.outputs.pull-request-head-sha }}
+      env:
+        GH_TOKEN: ${{ github.token }}
