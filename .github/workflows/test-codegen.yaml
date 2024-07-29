@@ -4,21 +4,18 @@ name: Generate and lint code
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        go-version: [1.19.x]
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: './go.mod'
     - name: Verify Patches
       run: make patch-all
     - name: Generate
@@ -37,3 +34,10 @@ jobs:
       with:
         version: ${{ steps.golangcilint.outputs.version }}
         skip-cache: true
+    - name: Report tests check
+      if: ${{ always() && github.event_name == 'workflow_dispatch' }}
+      uses: myrotvorets/set-commit-status-action@v2.0.1
+      with:
+        context: ${{ github.jobs[github.job].name }}
+        status: ${{ job.status }}
+        sha: ${{ github.sha }}
