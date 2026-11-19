@@ -1,0 +1,11 @@
+# SingleCaseResponseV2OtherDetailsDetailsInnerProductType
+
+## Enum
+
+
+* `SMART_HANDS` (value: `"SMART_HANDS"`)
+
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+

@@ -1,0 +1,77 @@
+# ModifyCase
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**Text** | **string** | Enter any modification details/additional notes to the technician. | 
+**Attachments** | Pointer to [**[]Attachment**](Attachment.md) | File(s) attached to the trouble ticket. e.g. picture of broken device, scanning of a bill or charge, etc... | [optional] 
+
+## Methods
+
+### NewModifyCase
+
+`func NewModifyCase(text string, ) *ModifyCase`
+
+NewModifyCase instantiates a new ModifyCase object
+This constructor will assign default values to properties that have it defined,
+and makes sure properties required by API are set, but the set of arguments
+will change when the set of required properties is changed
+
+### NewModifyCaseWithDefaults
+
+`func NewModifyCaseWithDefaults() *ModifyCase`
+
+NewModifyCaseWithDefaults instantiates a new ModifyCase object
+This constructor will only assign default values to properties that have it defined,
+but it doesn't guarantee that properties required by API are set
+
+### GetText
+
+`func (o *ModifyCase) GetText() string`
+
+GetText returns the Text field if non-nil, zero value otherwise.
+
+### GetTextOk
+
+`func (o *ModifyCase) GetTextOk() (*string, bool)`
+
+GetTextOk returns a tuple with the Text field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetText
+
+`func (o *ModifyCase) SetText(v string)`
+
+SetText sets Text field to given value.
+
+
+### GetAttachments
+
+`func (o *ModifyCase) GetAttachments() []Attachment`
+
+GetAttachments returns the Attachments field if non-nil, zero value otherwise.
+
+### GetAttachmentsOk
+
+`func (o *ModifyCase) GetAttachmentsOk() (*[]Attachment, bool)`
+
+GetAttachmentsOk returns a tuple with the Attachments field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetAttachments
+
+`func (o *ModifyCase) SetAttachments(v []Attachment)`
+
+SetAttachments sets Attachments field to given value.
+
+### HasAttachments
+
+`func (o *ModifyCase) HasAttachments() bool`
+
+HasAttachments returns a boolean if a field has been set.
+
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+
