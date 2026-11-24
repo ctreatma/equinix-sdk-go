@@ -1,0 +1,17 @@
+# LoaCriterionOperator
+
+## Enum
+
+
+* `EQUAL` (value: `"="`)
+
+* `IN` (value: `"IN"`)
+
+* `LIKE` (value: `"LIKE"`)
+
+* `CONTAINS` (value: `"CONTAINS"`)
+
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+
