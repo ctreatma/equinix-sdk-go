@@ -1,0 +1,928 @@
+{
+    "openapi": "3.0.0",
+    "x-eqx-api-linter-skip-rules": [
+        3,
+        24
+    ],
+    "info": {
+        "title": "Scheduling Work Visits",
+        "description": "Work visits can be scheduled at the request of the customer. This service can only be scheduled by a user with IBX Access Services ordering permission. Work visits are only applicable for visits up to 14 days long. Please note that work visits that exceed 14 days require Security Access approval instead. ",
+        "version": "2.0",
+        "termsOfService": "https://www.equinix.com/about/legal/terms",
+        "contact": {
+            "name": "Equinix API Support",
+            "url": "https://docs.equinix.com/api-support.htm"
+        }
+    },
+    "servers": [
+        {
+            "url": "https://api.equinix.com"
+        },
+        {
+            "url": "https://sandboxapi.equinix.com"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Work Visit",
+            "description": "Work Visit"
+        }
+    ],
+    "paths": {
+        "/colocations/v2/orders/workVisits": {
+            "post": {
+                "tags": [
+                    "Work Visit"
+                ],
+                "operationId": "Schedule Work Visit Services",
+                "summary": "Schedule Work Visit Services",
+                "description": "This method creates a work visit request that grants IBX visitors access for up to two weeks. This can only be done by a user with work visit request permission.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Workvisit_Create"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "headers": {
+                            "Location": {
+                                "description": "Location of Work Visit request \"/orders/1-23232322\"",
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "/orders/1-23232322"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2016011",
+                                        "errorMessage": "One or more mandatory properties are missing.",
+                                        "correlationId": "210407001942756",
+                                        "additionalInfo": [
+                                            {
+                                                "property": "details.cages[0].id",
+                                                "reason": "details.cages[0].id is required"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2016007",
+                                        "errorMessage": "Unable to access or locate given workvisit. Please ensure you have appropriate permissions.",
+                                        "correlationId": "99740129126918"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2016101",
+                                        "errorMessage": "The server has encountered an unexpected error. We apologize for the inconvenience. Please try again later.",
+                                        "correlationId": "99740129126918"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/colocations/v2/orders/workVisits/{orderId}": {
+            "patch": {
+                "tags": [
+                    "Work Visit"
+                ],
+                "summary": "Update a work visit order",
+                "operationId": "Update a work visit order",
+                "description": "This method modifies work visit details, such as contacts and visiting information, for a user with work visit request permission.",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "description": "Identifier of the work visit orders",
+                        "required": true,
+                        "style": "simple",
+                        "explode": false,
+                        "schema": {
+                            "maxLength": 100,
+                            "minLength": 1,
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "The work visit order to be updated",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Modify_request"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "headers": {
+                            "Location": {
+                                "description": "Location of Work Visit request",
+                                "schema": {
+                                    "type": "string",
+                                    "example": "/orders/1-23232322"
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "No content",
+                        "headers": {
+                            "Location": {
+                                "description": "Location of Work Visit request",
+                                "schema": {
+                                    "type": "string",
+                                    "example": "/orders/1-23232322"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2016011",
+                                        "errorMessage": "One or more mandatory properties are missing.",
+                                        "correlationId": "210407001942756",
+                                        "additionalInfo": [
+                                            {
+                                                "property": "contacts[0].type",
+                                                "reason": "contacts[0].type is required"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2012007",
+                                        "errorMessage": "Permission denied to update or cancel. Please ensure you have appropriate permissions.",
+                                        "correlationId": "99740129126918"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/Error"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "example": [
+                                    {
+                                        "errorCode": "EQ-2012101",
+                                        "errorMessage": "The server has encountered an unexpected error. We apologize for the inconvenience. Please try again later.",
+                                        "correlationId": "99740129126918"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "Error": {
+                "title": "Error Info",
+                "type": "array",
+                "items": {
+                    "title": "Error details",
+                    "type": "object",
+                    "properties": {
+                        "errorCode": {
+                            "type": "string",
+                            "example": "EQ-20YYXXX"
+                        },
+                        "errorMessage": {
+                            "type": "string",
+                            "example": "Error message"
+                        },
+                        "details": {
+                            "type": "string",
+                            "example": "Error details"
+                        },
+                        "correlationId": {
+                            "type": "string",
+                            "example": "Correlation ID to trace the error back"
+                        },
+                        "help": {
+                            "type": "string",
+                            "example": "URL to a help page for the corresponding errorCode"
+                        },
+                        "additionalInfo": {
+                            "title": "Error details",
+                            "type": "object",
+                            "properties": {
+                                "property": {
+                                    "type": "string",
+                                    "example": "id"
+                                },
+                                "reason": {
+                                    "type": "string",
+                                    "example": "missing id"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Workvisit_Create": {
+                "required": [
+                    "details"
+                ],
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "maxLength": 4000,
+                        "minLength": 10,
+                        "type": "string",
+                        "description": "Description of the Work Visit",
+                        "example": "Monthly Routine check"
+                    },
+                    "customerReferenceId": {
+                        "maxLength": 40,
+                        "minLength": 1,
+                        "type": "string",
+                        "description": "Customer Reference Number / External Reference Number",
+                        "example": "048837d6-4cd8-401f-ba41-a4ac015c3f3e"
+                    },
+                    "purchaseOrder": {
+                        "$ref": "#/components/schemas/purchaseOrder"
+                    },
+                    "attachments": {
+                        "maxItems": 5,
+                        "type": "array",
+                        "description": "File(s) attached to the Work visit. To learn about including attachments in your request, see POST Attachments API.",
+                        "items": {
+                            "$ref": "#/components/schemas/Attachment"
+                        }
+                    },
+                    "contacts": {
+                        "type": "array",
+                        "description": "The ordering user is the default Technical and Notification contacts. If you would like to provide a different Technical contact and/or additional Notification contacts, specify the Technical contact and Notification contact(s) details. There can only be 1 Technical contact (registered user or not), but there can be more than 1 Notification contacts (registered users).",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/ContactRequestRegisteredUser"
+                                },
+                                {
+                                    "$ref": "#/components/schemas/ContactRequestNonRegisteredUser"
+                                }
+                            ]
+                        }
+                    },
+                    "details": {
+                        "required": [
+                            "cages",
+                            "visitStartDateTime",
+                            "visitEndDateTime",
+                            "visitors"
+                        ],
+                        "allOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "cages": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/Cages_details"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "$ref": "#/components/schemas/workvisit_additional_details"
+                            }
+                        ]
+                    }
+                }
+            },
+            "Modify_request": {
+                "type": "object",
+                "properties": {
+                    "contacts": {
+                        "type": "array",
+                        "maxItems": 1,
+                        "items": {
+                            "$ref": "#/components/schemas/ContactRequestRegisteredUser_Update"
+                        }
+                    },
+                    "details": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/workvisits_additional_info"
+                            }
+                        ]
+                    }
+                }
+            },
+            "RegisteredUser": {
+                "required": [
+                    "registeredUsers"
+                ],
+                "type": "object",
+                "properties": {
+                    "registeredUsers": {
+                        "maxItems": 10,
+                        "type": "array",
+                        "description": "Username of a registered user.",
+                        "items": {
+                            "type": "string",
+                            "example": "john_doe1"
+                        }
+                    }
+                },
+                "description": "Contact information of a registered user. Ensure that the user status of this contact is approved or active."
+            },
+            "NonRegisteredUser": {
+                "required": [
+                    "firstName",
+                    "lastName"
+                ],
+                "type": "object",
+                "properties": {
+                    "firstName": {
+                        "type": "string",
+                        "description": "First name of the contact.",
+                        "example": "John"
+                    },
+                    "lastName": {
+                        "type": "string",
+                        "description": "Last name of the contact.",
+                        "example": "Doe"
+                    },
+                    "details": {
+                        "maxItems": 2,
+                        "minItems": 0,
+                        "type": "array",
+                        "description": "Reference of the related party, could be a party reference or a party role reference",
+                        "items": {
+                            "$ref": "#/components/schemas/ContactsRequestDetails"
+                        }
+                    }
+                },
+                "description": "Contact information of a non-registered contact, including contact details."
+            },
+            "NonRegisteredUser_Visitor": {
+                "required": [
+                    "firstName",
+                    "lastName",
+                    "companyName"
+                ],
+                "type": "object",
+                "properties": {
+                    "firstName": {
+                        "type": "string",
+                        "description": "First name of the visitor.",
+                        "maxLength": 30,
+                        "example": "John"
+                    },
+                    "lastName": {
+                        "type": "string",
+                        "description": "Last name of the visitor.",
+                        "example": "Doe",
+                        "maxLength": 30
+                    },
+                    "companyName": {
+                        "type": "string",
+                        "description": "Name of the company.",
+                        "example": "Acme Corporation",
+                        "maxLength": 80
+                    },
+                    "details": {
+                        "maxItems": 2,
+                        "minItems": 0,
+                        "type": "array",
+                        "description": "Reference of the related party, could be a party reference or a party role reference",
+                        "items": {
+                            "$ref": "#/components/schemas/VisitorContactsRequestDetails"
+                        }
+                    }
+                },
+                "description": "Contact information of a non-registered contact, including contact details."
+            },
+            "ContactRequestRegisteredUser": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/RegisteredUser"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "description": "Type of contact.",
+                                "default": "NOTIFICATION",
+                                "enum": [
+                                    "NOTIFICATION",
+                                    "TECHNICAL"
+                                ]
+                            },
+                            "availability": {
+                                "type": "string",
+                                "description": "Contact's availability to receive calls.",
+                                "default": "ANYTIME",
+                                "enum": [
+                                    "WORK_HOURS",
+                                    "ANYTIME"
+                                ]
+                            },
+                            "timezone": {
+                                "$ref": "#/components/schemas/TIME_ZONE_LIST"
+                            }
+                        },
+                        "description": "Contact information of a registered user. Ensure that the user status of this contact is approved, active or locked."
+                    }
+                ]
+            },
+            "ContactRequestNonRegisteredUser": {
+                "description": "Contact information of a registered user. Ensure that the user status of this contact is approved, active or locked.",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "description": "Type of contact.",
+                                "default": "TECHNICAL",
+                                "enum": [
+                                    "TECHNICAL"
+                                ]
+                            },
+                            "availability": {
+                                "type": "string",
+                                "description": "Contact's availability to receive calls.",
+                                "default": "ANYTIME",
+                                "enum": [
+                                    "WORK_HOURS",
+                                    "ANYTIME"
+                                ]
+                            },
+                            "timezone": {
+                                "$ref": "#/components/schemas/TIME_ZONE_LIST"
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/schemas/NonRegisteredUser"
+                    }
+                ]
+            },
+            "ContactsRequestDetails": {
+                "required": [
+                    "type",
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "Customer's email or mobile number depending on communications type",
+                        "example": "MOBILE",
+                        "enum": [
+                            "MOBILE",
+                            "EMAIL"
+                        ]
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "Value of related `type`. Input email address when type is of `EMAIL` and mobile number for type `MOBILE`. Prefix phone number with country code (i.e +1 for US)  if you are using mobile number."
+                    }
+                },
+                "description": "Contact details."
+            },
+            "VisitorContactsRequestDetails": {
+                "required": [
+                    "type",
+                    "value"
+                ],
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "Customer's email or mobile number depending on communications type",
+                        "example": "MOBILE",
+                        "enum": [
+                            "MOBILE",
+                            "EMAIL"
+                        ]
+                    },
+                    "value": {
+                        "type": "string",
+                        "description": "Value of related `type`. Input email address when type is of `EMAIL` and mobile number for type `MOBILE`. Prefix phone number with country code (i.e +1 for US)  if you are using mobile number.",
+                        "example": "+1-4601231122"
+                    }
+                },
+                "description": "Contact details."
+            },
+            "Attachment": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "maxLength": 36,
+                        "minLength": 36,
+                        "type": "string",
+                        "description": "Identifier of the binary attachment UUID.",
+                        "example": "c77c5f58-a7ea-4e88-9fc4-1a2900027425"
+                    },
+                    "name": {
+                        "maxLength": 100,
+                        "minLength": 5,
+                        "type": "string",
+                        "description": "Name of the binary attachment.",
+                        "example": "error-log"
+                    }
+                },
+                "description": "Attachment refers to extensions or additional parts that is or may be attached to something (agreements, contracts, appointments) to perform a particular function. They can be communication attachments, documents and other."
+            },
+            "purchaseOrder": {
+                "type": "object",
+                "required": [
+                    "type"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "EXEMPTED",
+                            "NEW",
+                            "EXISTING"
+                        ],
+                        "example": "EXISTING",
+                        "description": "Type of the Purchase Order"
+                    },
+                    "number": {
+                        "type": "string",
+                        "description": "Purchase order number is applicable when `type` is `EXISTING` or `NEW`",
+                        "example": 1091238010
+                    },
+                    "amount": {
+                        "type": "number",
+                        "description": "This is only applicable when `type` is `NEW`.",
+                        "example": "2020"
+                    },
+                    "startDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "This is only applicable when `type` is `NEW`.",
+                        "example": "2020-05-22"
+                    },
+                    "endDate": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "This is only applicable when `type` is `NEW`.",
+                        "example": "2021-05-22"
+                    },
+                    "attachmentId": {
+                        "type": "string",
+                        "description": "Attachment ID of Purchase Order document.",
+                        "minLength": 36,
+                        "maxLength": 36,
+                        "example": "8d0bef9c-cca9-11ea-87d0-0242ac130003"
+                    }
+                },
+                "description": "Purchase Order"
+            },
+            "workvisits_additional_info": {
+                "type": "object",
+                "properties": {
+                    "visitStartDateTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Requested start date and time of the work visit in UTC timezone in ISO 8601 format",
+                        "example": "2020-12-17'T'09:15:44Z"
+                    },
+                    "visitEndDateTime": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Requested end date and time of the work visit in UTC timezone in ISO 8601 format",
+                        "example": "2020-12-18'T'09:15:44Z"
+                    },
+                    "openCabinet": {
+                        "type": "boolean",
+                        "description": "This is an additional request for Equinix to open your secure cabinet during the work visit.  When `true`, Equinix staff will open cabinet during work visit.",
+                        "default": false
+                    }
+                }
+            },
+            "workvisit_additional_details": {
+                "type": "object",
+                "properties": {
+                    "openCabinet": {
+                        "type": "boolean",
+                        "description": "Equinix Technicial to help to open the cage and an additional charge incured by the customer",
+                        "default": false
+                    },
+                    "visitStartDateTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "visitEndDateTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "visitors": {
+                        "description": "The maximum limit for non registered visitors is 50",
+                        "type": "array",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/RegisteredUser"
+                                },
+                                {
+                                    "$ref": "#/components/schemas/NonRegisteredUser_Visitor"
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "TIME_ZONE_LIST": {
+                "type": "string",
+                "description": "Time Zone Enum values.",
+                "example": "America/Los_Angeles",
+                "enum": [
+                    "Atlantic/Canary",
+                    "Europe/Dublin",
+                    "Europe/London",
+                    "Europe/Lisbon",
+                    "Africa/Algiers",
+                    "Europe/Berlin",
+                    "Europe/Amsterdam",
+                    "Europe/Copenhagen",
+                    "Europe/Madrid",
+                    "Europe/Paris",
+                    "Europe/Stockholm",
+                    "Europe/Zurich",
+                    "Europe/Warsaw",
+                    "Africa/Cairo",
+                    "Africa/Johannesburg",
+                    "Africa/Lagos",
+                    "Europe/Sofia",
+                    "Africa/Nairobi",
+                    "Asia/Jerusalem",
+                    "Europe/Istanbul",
+                    "Europe/Moscow",
+                    "Asia/Riyadh",
+                    "Asia/Dubai",
+                    "Asia/Kabul",
+                    "Asia/Tehran",
+                    "Asia/Karachi",
+                    "Indian/Maldives",
+                    "Asia/Kolkata",
+                    "Asia/Kathmandu",
+                    "Asia/Omsk",
+                    "Asia/Rangoon",
+                    "Asia/Jakarta",
+                    "Asia/Ho_Chi_Minh",
+                    "Asia/Brunei",
+                    "Asia/Hong_Kong",
+                    "Asia/Kuala_Lumpur",
+                    "Asia/Manila",
+                    "Asia/Shanghai",
+                    "Asia/Singapore",
+                    "Asia/Taipei",
+                    "Australia/Perth",
+                    "Asia/Seoul",
+                    "Asia/Tokyo",
+                    "Australia/Darwin",
+                    "Australia/Brisbane",
+                    "Pacific/Guam",
+                    "Australia/Adelaide",
+                    "Australia/Sydney",
+                    "Pacific/Auckland",
+                    "Pacific/Chatham",
+                    "Indian/Christmas",
+                    "America/Scoresbysund",
+                    "Atlantic/South_Georgia",
+                    "America/Sao_Paulo",
+                    "America/Detroit",
+                    "America/New_York",
+                    "America/Puerto_Rico",
+                    "America/Toronto",
+                    "America/Bogota",
+                    "America/Chicago",
+                    "America/Winnipeg",
+                    "America/Denver",
+                    "America/Edmonton",
+                    "America/Mexico_City",
+                    "America/Los_Angeles",
+                    "America/Vancouver",
+                    "America/Phoenix",
+                    "America/Anchorage",
+                    "America/Halifax",
+                    "America/Lima",
+                    "America/Monterrey",
+                    "Pacific/Gambier",
+                    "Pacific/Marquesas",
+                    "Pacific/Honolulu",
+                    "Pacific/Fiji",
+                    "Asia/Muscat",
+                    "America/Argentina/Buenos_Aires",
+                    "America/Caracas",
+                    "Etc/GMT+12",
+                    "UTC",
+                    "GMT",
+                    "America/Santiago",
+                    "America/St_Johns",
+                    "Asia/Almaty",
+                    "Asia/Bangkok",
+                    "Asia/Calcutta",
+                    "Asia/Magadan",
+                    "Asia/Yekaterinburg",
+                    "Australia/Eucla",
+                    "Australia/Lord_Howe",
+                    "Europe/Bratislava",
+                    "Europe/Brussels",
+                    "Europe/Prague",
+                    "Europe/Rome",
+                    "Europe/Helsinki",
+                    "Pacific/Kiritimati",
+                    "Pacific/Midway",
+                    "Pacific/Tongatapu",
+                    "Australia/Melbourne",
+                    "Australia/NSW",
+                    "Australia/Queensland",
+                    "Australia/South",
+                    "Australia/Victoria",
+                    "Australia/West",
+                    "Australia/Canberra"
+                ]
+            },
+            "Cages_details": {
+                "type": "object",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "ID of the cage that is scheduled for work visit",
+                        "example": "DC2:01:123456"
+                    },
+                    "accountNumber": {
+                        "type": "string",
+                        "description": "Customer account number that is linked to the cage.",
+                        "example": "1234567890"
+                    },
+                    "cabinetId": {
+                        "type": "string",
+                        "description": "The unique ID of cabinet. Provide cabinet ID if you want to limit access to specific cabinets.",
+                        "example": "DC2:01:123456:0101"
+                    }
+                }
+            },
+            "ContactRequestRegisteredUser_Update": {
+                "type": "object",
+                "description": "Contact information of a registered user. Ensure that the user status of this contact is approved or active.",
+                "required": [
+                    "registeredUsers",
+                    "type"
+                ],
+                "properties": {
+                    "registeredUsers": {
+                        "type": "array",
+                        "maxItems": 10,
+                        "description": "Username of registered user",
+                        "items": {
+                            "type": "string",
+                            "example": "john_doe1"
+                        },
+                        "minItems": 1
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Type of contact",
+                        "enum": [
+                            "NOTIFICATION"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
