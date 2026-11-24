@@ -10,7 +10,7 @@ Method | HTTP request | Description
 
 ## CreateOrder
 
-> OrderCreateResponse CreateOrder(ctx).OrderCreateRequest(orderCreateRequest).Execute()
+> OrderCreateResponse CreateOrder(ctx).OrderCreateRequest(orderCreateRequest).IdempotencyKey(idempotencyKey).Execute()
 
 Order a new Secure Cabinet deployment
 
@@ -30,10 +30,11 @@ import (
 
 func main() {
 	orderCreateRequest := *openapiclient.NewOrderCreateRequest("132028", "CH1", openapiclient.ContractTerm("TERM_24_MONTHS"), *openapiclient.NewOrderItem(float64(5), true, int32(1), *openapiclient.NewDimensions(*openapiclient.NewDimension(int32(482), openapiclient.Dimension_unit("MILLIMETER")), *openapiclient.NewDimension(int32(482), openapiclient.Dimension_unit("MILLIMETER")), *openapiclient.NewDimension(int32(482), openapiclient.Dimension_unit("MILLIMETER"))), true)) // OrderCreateRequest | 
+	idempotencyKey := "idempotencyKey_example" // string | Optional, caller-provided unique token that makes order creation idempotent. When supplied, retrying the same request with the same key returns the original order result instead of creating a duplicate order. Reusing the same key with a materially different request payload results in a 409 Conflict response.  (optional)
 
 	configuration := openapiclient.NewConfiguration()
 	apiClient := openapiclient.NewAPIClient(configuration)
-	resp, r, err := apiClient.OrdersApi.CreateOrder(context.Background()).OrderCreateRequest(orderCreateRequest).Execute()
+	resp, r, err := apiClient.OrdersApi.CreateOrder(context.Background()).OrderCreateRequest(orderCreateRequest).IdempotencyKey(idempotencyKey).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `OrdersApi.CreateOrder``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -55,6 +56,7 @@ Other parameters are passed through a pointer to a apiCreateOrderRequest struct 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **orderCreateRequest** | [**OrderCreateRequest**](OrderCreateRequest.md) |  | 
+ **idempotencyKey** | **string** | Optional, caller-provided unique token that makes order creation idempotent. When supplied, retrying the same request with the same key returns the original order result instead of creating a duplicate order. Reusing the same key with a materially different request payload results in a 409 Conflict response.  | 
 
 ### Return type
 
