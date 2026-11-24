@@ -1,0 +1,2194 @@
+openapi: 3.0.0
+servers:
+  - description: Equinix API
+    url: https://api.equinix.com
+info:
+  version: 2.0.0
+  title: Case Management API
+  description: 'The API for the Case Management Service.'
+  termsOfService: 'https://www.equinix.com/about/legal/terms'
+  contact:
+    name: Equinix API Support
+    url: https://docs.equinix.com/api-support.htm
+tags:
+  - name: Case
+    description: |
+      APIs for managing customer cases throughout their lifecycle.<br>
+      <b><u>Note:</u></b> Colocation and IBX-related tickets previously known as trouble tickets; now use the case terminology.
+
+      The Case APIs support discovering valid ticket codes, retrieving the request payload
+      requirements for a specific ticket code, creating a case, retrieving
+      case details, adding notes, and cancelling a case.
+
+      To create a case, follow this workflow:
+      1. Call GET /support/v2/tickets/codes to retrieve the ticket codes available
+         to the authenticated user. Use the categories query parameter to optionally
+         filter the results by product category. The results are paginated; use the
+         limit and offset query parameters, or the next link in the pagination object,
+         to retrieve all pages.
+      2. Select the appropriate ticket code based on the type of issue or support request.
+      3. Call GET /support/v2/tickets/codes/{code}/schema using the selected
+         ticket code to retrieve the required fields, data types, validation rules,
+         applicable constraints, and a sample request payload.
+      4. Build the request payload using the returned schema. The request payload schema
+         returned for the selected ticket code is the source of truth for the fields and
+         validation requirements applicable to that support ticket type.
+      5. Call POST /support/v2/tickets with the constructed payload to create the case.
+      6. Use the returned case or order number to retrieve the case details, add notes,
+         or cancel the case as required.
+    externalDocs:
+      url: https://docs.equinix.com/customer-support
+security:
+  - BearerAuth: []
+paths:
+  '/support/v2/tickets/codes':
+    get:
+      tags:
+        - Case
+      operationId: listTicketCodes
+      summary: Get Ticket Codes
+      description: |
+        Retrieves the ticket codes available to the authenticated user, including their classification, description, lifecycle status, and deprecation information.
+        Use the `categories` parameter to optionally filter codes by product category.
+
+        The response is paginated. Use the `limit` and `offset` query parameters to page through the results, or follow the `next` and `previous` links returned in the `pagination` object.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 'Maximum number of ticket codes to return per page.'
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+        - name: offset
+          in: query
+          required: false
+          description: 'Zero-based index of the first ticket code to return.'
+          schema:
+            type: integer
+            minimum: 0
+            example: 0
+        - name: categories
+          in: query
+          required: false
+          description: >
+            Filter results to the specified product categories.
+            Accepts a comma-separated list (e.g. `?categories=FABRIC,NETWORK_EDGE`).
+            Omit to return all categories permitted for the caller.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - IBX_DATA_CENTERS
+                - CROSS_CONNECT
+                - METRO_CONNECT
+                - SMART_VIEW
+                - EQUINIX_CONNECT
+                - FABRIC
+                - EQUINIX_INTERNET_ACCESS
+                - INTERNET_EXCHANGE
+                - NETWORK_EDGE
+                - NETWORK_PRODUCT_ACQUIRED
+                - PRECISION_TIME
+                - TECHNICAL_ENABLEMENT
+                - ACCOUNT_SUPPORT
+                - API_SUPPORT
+                - BILLING_SUPPORT
+                - CUSTOMER_QUESTIONNAIRE_SUPPORT
+                - ORDER_SUPPORT
+                - PORTAL_SUPPORT
+                - SERVICE_ACTIVATION
+                - OTHERS
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketCodeList'
+              examples:
+                ActiveCode:
+                  summary: Active ticket code (middle page)
+                  value:
+                    data:
+                      - code: '0005-0000'
+                        classification: 'COLOCATION_IBX_DATA_CENTERS-SECURITY-THERE_IS_A_SECURITY_ISSUE_WITH_MY_CAGE_OR_CABINET'
+                        description: 'Report a physical security issue with a colocation cage or cabinet, such as unauthorized access or a potential breach.'
+                        status: 'active'
+                        deprecation: null
+                    pagination:
+                      total: 150
+                      offset: 10
+                      limit: 10
+                      next: '/support/v2/tickets/codes?limit=10&offset=20'
+                      previous: '/support/v2/tickets/codes?limit=10&offset=0'
+                DeprecatedWithSuccessor:
+                  summary: Deprecated ticket code with a replacement (first page)
+                  value:
+                    data:
+                      - code: '0301-0000'
+                        classification: 'COLOCATION_IBX_DATA_CENTERS-IBX_SUPPORT-IBX_FACILITY_INQUIRY'
+                        description: 'Submit a general inquiry or support request related to the physical Equinix IBX data center facility and operations.'
+                        status: 'deprecated'
+                        deprecation:
+                          sunsetAt: '2027-04-07T00:00:00Z'
+                          successor: '0102-0700'
+                    pagination:
+                      total: 150
+                      offset: 0
+                      limit: 10
+                      next: '/support/v2/tickets/codes?limit=10&offset=10'
+                DeprecatedWithoutSuccessor:
+                  summary: Deprecated ticket code with no replacement (last page)
+                  value:
+                    data:
+                      - code: '0301-0000'
+                        classification: 'COLOCATION_IBX_DATA_CENTERS-IBX_SUPPORT-IBX_FACILITY_INQUIRY'
+                        description: 'Submit a general inquiry or support request related to the physical Equinix IBX data center facility and operations.'
+                        status: 'deprecated'
+                        deprecation:
+                          sunsetAt: '2027-01-01T00:00:00Z'
+                          successor: null
+                    pagination:
+                      total: 150
+                      offset: 140
+                      limit: 10
+                      previous: '/support/v2/tickets/codes?limit=10&offset=130'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets/codes/{code}/schema':
+    get:
+      tags:
+        - Case
+      operationId: getTicketCodeRequestSchema
+      summary: Get Request Schema And Example By Ticket Code
+      description: |
+        Retrieves the request payload schema and a sample request for the specified ticket code. The response defines the fields, required values, data types, and validation constraints applicable to creating a case with the selected ticket code.
+
+        The available fields, required fields, validation rules, and example values may vary depending on the ticket code. The sample request is illustrative and intended as a reference; it may differ for other ticket codes.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          description: 'The ticket code to retrieve the request payload schema and sample request payload. See GET /support/v2/tickets/codes for the list of available ticket codes.'
+          required: true
+          schema:
+            type: string
+            description: 'Ticket code, e.g. "0000-0000".'
+            example: '0000-0000'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestSchemaResponse'
+              example:
+                code: '0000-0000'
+                schema:
+                  code:
+                    dataType: string
+                    fieldDescription: Provide the ticket code for creating a case. Refer to the Ticket Codes API (/support/v2/tickets/codes) for a list of available ticket codes.
+                    required: true
+                  description:
+                    dataType: string
+                    fieldDescription: Description of the issue.
+                    required: true
+                    minLength: 1
+                    maxLength: 4000
+                  attachments:
+                    dataType: array
+                    fieldDescription: 'Attachments must be uploaded using the Attachment API (/v1/attachments/file) before they can be referenced in this request. Each upload request supports one file and the maximum file size is 10 MB per file. Supported formats are PDF, PNG, JPG/JPEG, GIF, BMP, TIF/TIFF, TXT, CSV, DOC/DOCX, XLS/XLSX, PPT/PPTX, PPS/PPSX, and VSD/VSDX. Do not set the purpose query parameter on the upload request; it is not used for support cases. After a successful upload, use the returned values in the attachments array: attachmentId maps to id and attachmentName maps to name. The actual file content or multipart data should not be included in this payload.'
+                    required: false
+                    constraints:
+                      maxItems: 5
+                    items:
+                      dataType: object
+                      fields:
+                        id:
+                          dataType: string
+                          required: true
+                          format: uuid
+                          fieldDescription: The unique identifier returned as attachmentId by the Attachment API after the file has been successfully uploaded.
+                        name:
+                          dataType: string
+                          required: true
+                          fieldDescription: 'The original file name returned as attachmentName by the Attachment API, including the file extension.'
+                  customerReferenceId:
+                    dataType: string
+                    fieldDescription: 'Enter an internal reference for the request, such as a Purchase Order number or internal code, which can be used to search and track the request in the portal.'
+                    required: false
+                    maxLength: 40
+                  primaryId:
+                    dataType: string
+                    fieldDescription: 'Provide the asset number of the affected asset, or the cage/cabinet.'
+                    required: true
+                  occurredDateTime:
+                    dataType: string
+                    fieldDescription: Provide the date and time when the incident occurred or was first noticed.
+                    format: date-time
+                    required: true
+                  callMeFromCage:
+                    dataType: boolean
+                    fieldDescription: Provide true if you would like the technician to call you from the cage.
+                    required: false
+                  details:
+                    dataType: object
+                    fieldDescription: Additional details related to the incident.
+                    required: false
+                    fields:
+                      submarineEngineerRequired:
+                        dataType: boolean
+                        fieldDescription: Provide true if a submarine engineer is required to investigate the issue. Applicable only to Monet assets.
+                        required: false
+                  contacts:
+                    dataType: array
+                    fieldDescription: 'List of contacts associated with the request. Registered or unregistered contacts can be provided together. For registered contacts, provide registeredUsers. For unregistered contacts, provide firstName and details. If provided, at least one contact must be included.'
+                    required: false
+                    constraints:
+                      maxItemsBy:
+                        - field: type
+                          value: NOTIFICATION
+                          maxItems: 13
+                        - field: type
+                          value: TECHNICAL
+                          maxItems: 1
+                    items:
+                      dataType: object
+                      constraints:
+                        oneOf:
+                          - required:
+                              - registeredUsers
+                          - required:
+                              - firstName
+                              - details
+                      fields:
+                        type:
+                          dataType: string
+                          required: true
+                          fieldDescription: Specifies the role of the contact for the request.
+                          allowedValues:
+                            - TECHNICAL
+                            - NOTIFICATION
+                        registeredUsers:
+                          dataType: array
+                          required: false
+                          fieldDescription: Use this field for an existing registered user. Provide the username of the registered user. The username may or may not be an email address.
+                          items:
+                            dataType: string
+                        firstName:
+                          dataType: string
+                          required: true
+                          fieldDescription: First name of the unregistered contact. Applicable only if you provide unregistered user.
+                        lastName:
+                          dataType: string
+                          required: false
+                          fieldDescription: Last name of the unregistered contact. Applicable only if you provide unregistered user.
+                        details:
+                          dataType: array
+                          required: true
+                          fieldDescription: Contact information for the unregistered contact. Applicable only if you provide unregistered user. An email address is mandatory. Work phone and secondary/mobile phone information are optional.
+                          constraints:
+                            minItems: 1
+                            contains:
+                              type: EMAIL
+                          items:
+                            dataType: object
+                            fields:
+                              type:
+                                dataType: string
+                                required: true
+                                fieldDescription: Specifies the type of contact detail.
+                                allowedValues:
+                                  - EMAIL
+                                  - PHONE
+                                  - MOBILE
+                              value:
+                                dataType: string
+                                required: true
+                                fieldDescription: 'Value of the contact detail. For EMAIL, provide a valid email address. For PHONE and MOBILE, provide the phone number together with the country code.'
+                              workPhonePrefToCall:
+                                dataType: string
+                                required: false
+                                fieldDescription: Preferred time to contact the unregistered user on their work phone. This field is applicable only when a PHONE detail is provided.
+                                allowedValues:
+                                  - Anytime
+                                  - Never
+                                  - During my business hours
+                                  - During IBX business hours
+                              workPhoneTimeZone:
+                                dataType: string
+                                required: false
+                                fieldDescription: 'Time zone of the unregistered user''s work phone, used to apply the calling preference set in workPhonePrefToCall. Applicable only when a PHONE detail is provided, and required when workPhonePrefToCall is "During my business hours".'
+                                allowedValues:
+                                  - Atlantic/Canary
+                                  - Europe/Dublin
+                                  - Europe/London
+                                  - Europe/Lisbon
+                                  - Africa/Algiers
+                                  - Europe/Berlin
+                                  - Europe/Amsterdam
+                                  - Europe/Copenhagen
+                                  - Europe/Madrid
+                                  - Europe/Paris
+                                  - Europe/Stockholm
+                                  - Europe/Zurich
+                                  - Europe/Warsaw
+                                  - Africa/Cairo
+                                  - Africa/Johannesburg
+                                  - Africa/Lagos
+                                  - Europe/Sofia
+                                  - Africa/Nairobi
+                                  - Asia/Jerusalem
+                                  - Europe/Istanbul
+                                  - Europe/Moscow
+                                  - Asia/Riyadh
+                                  - Asia/Dubai
+                                  - Asia/Kabul
+                                  - Asia/Tehran
+                                  - Asia/Karachi
+                                  - Indian/Maldives
+                                  - Asia/Kolkata
+                                  - Asia/Kathmandu
+                                  - Asia/Omsk
+                                  - Asia/Rangoon
+                                  - Asia/Jakarta
+                                  - Asia/Ho_Chi_Minh
+                                  - Asia/Brunei
+                                  - Asia/Hong_Kong
+                                  - Asia/Kuala_Lumpur
+                                  - Asia/Manila
+                                  - Asia/Shanghai
+                                  - Asia/Singapore
+                                  - Asia/Taipei
+                                  - Australia/Perth
+                                  - Asia/Seoul
+                                  - Asia/Tokyo
+                                  - Australia/Darwin
+                                  - Australia/Brisbane
+                                  - Pacific/Guam
+                                  - Australia/Adelaide
+                                  - Australia/Sydney
+                                  - Pacific/Auckland
+                                  - Pacific/Chatham
+                                  - Indian/Christmas
+                                  - America/Scoresbysund
+                                  - Atlantic/South_Georgia
+                                  - America/Sao_Paulo
+                                  - America/Detroit
+                                  - America/New_York
+                                  - America/Puerto_Rico
+                                  - America/Toronto
+                                  - America/Bogota
+                                  - America/Chicago
+                                  - America/Winnipeg
+                                  - America/Denver
+                                  - America/Edmonton
+                                  - America/Mexico_City
+                                  - America/Los_Angeles
+                                  - America/Vancouver
+                                  - America/Phoenix
+                                  - America/Anchorage
+                                  - America/Halifax
+                                  - America/Lima
+                                  - America/Monterrey
+                                  - Pacific/Gambier
+                                  - Pacific/Marquesas
+                                  - Pacific/Honolulu
+                                  - Pacific/Fiji
+                                  - Asia/Muscat
+                                  - America/Argentina/Buenos_Aires
+                                  - America/Caracas
+                                  - Etc/GMT+12
+                                  - UTC
+                                  - GMT
+                                  - America/Santiago
+                                  - America/St_Johns
+                                  - Asia/Almaty
+                                  - Asia/Bangkok
+                                  - Asia/Calcutta
+                                  - Asia/Magadan
+                                  - Asia/Yekaterinburg
+                                  - Australia/Eucla
+                                  - Australia/Lord_Howe
+                                  - Europe/Bratislava
+                                  - Europe/Brussels
+                                  - Europe/Prague
+                                  - Europe/Rome
+                                  - Europe/Helsinki
+                                  - Pacific/Kiritimati
+                                  - Pacific/Midway
+                                  - Pacific/Tongatapu
+                                  - Australia/Melbourne
+                                  - Australia/NSW
+                                  - Australia/Queensland
+                                  - Australia/South
+                                  - Australia/Victoria
+                                  - Australia/West
+                                  - Australia/Canberra
+                              secondaryPhonePrefToCall:
+                                dataType: string
+                                required: false
+                                fieldDescription: Preferred time to contact the unregistered user on their secondary/mobile phone. This field is applicable only when a MOBILE detail is provided.
+                                allowedValues:
+                                  - Anytime
+                                  - Never
+                                  - During my business hours
+                                  - During IBX business hours
+                              secondaryPhoneTimeZone:
+                                dataType: string
+                                required: false
+                                fieldDescription: Time zone associated with the secondary/mobile phone and used to interpret the selected secondary phone calling preference. This field is applicable only when a MOBILE detail is provided and is required when secondaryPhonePrefToCall is set to "During my business hours".
+                                allowedValues:
+                                  - Atlantic/Canary
+                                  - Europe/Dublin
+                                  - Europe/London
+                                  - Europe/Lisbon
+                                  - Africa/Algiers
+                                  - Europe/Berlin
+                                  - Europe/Amsterdam
+                                  - Europe/Copenhagen
+                                  - Europe/Madrid
+                                  - Europe/Paris
+                                  - Europe/Stockholm
+                                  - Europe/Zurich
+                                  - Europe/Warsaw
+                                  - Africa/Cairo
+                                  - Africa/Johannesburg
+                                  - Africa/Lagos
+                                  - Europe/Sofia
+                                  - Africa/Nairobi
+                                  - Asia/Jerusalem
+                                  - Europe/Istanbul
+                                  - Europe/Moscow
+                                  - Asia/Riyadh
+                                  - Asia/Dubai
+                                  - Asia/Kabul
+                                  - Asia/Tehran
+                                  - Asia/Karachi
+                                  - Indian/Maldives
+                                  - Asia/Kolkata
+                                  - Asia/Kathmandu
+                                  - Asia/Omsk
+                                  - Asia/Rangoon
+                                  - Asia/Jakarta
+                                  - Asia/Ho_Chi_Minh
+                                  - Asia/Brunei
+                                  - Asia/Hong_Kong
+                                  - Asia/Kuala_Lumpur
+                                  - Asia/Manila
+                                  - Asia/Shanghai
+                                  - Asia/Singapore
+                                  - Asia/Taipei
+                                  - Australia/Perth
+                                  - Asia/Seoul
+                                  - Asia/Tokyo
+                                  - Australia/Darwin
+                                  - Australia/Brisbane
+                                  - Pacific/Guam
+                                  - Australia/Adelaide
+                                  - Australia/Sydney
+                                  - Pacific/Auckland
+                                  - Pacific/Chatham
+                                  - Indian/Christmas
+                                  - America/Scoresbysund
+                                  - Atlantic/South_Georgia
+                                  - America/Sao_Paulo
+                                  - America/Detroit
+                                  - America/New_York
+                                  - America/Puerto_Rico
+                                  - America/Toronto
+                                  - America/Bogota
+                                  - America/Chicago
+                                  - America/Winnipeg
+                                  - America/Denver
+                                  - America/Edmonton
+                                  - America/Mexico_City
+                                  - America/Los_Angeles
+                                  - America/Vancouver
+                                  - America/Phoenix
+                                  - America/Anchorage
+                                  - America/Halifax
+                                  - America/Lima
+                                  - America/Monterrey
+                                  - Pacific/Gambier
+                                  - Pacific/Marquesas
+                                  - Pacific/Honolulu
+                                  - Pacific/Fiji
+                                  - Asia/Muscat
+                                  - America/Argentina/Buenos_Aires
+                                  - America/Caracas
+                                  - Etc/GMT+12
+                                  - UTC
+                                  - GMT
+                                  - America/Santiago
+                                  - America/St_Johns
+                                  - Asia/Almaty
+                                  - Asia/Bangkok
+                                  - Asia/Calcutta
+                                  - Asia/Magadan
+                                  - Asia/Yekaterinburg
+                                  - Australia/Eucla
+                                  - Australia/Lord_Howe
+                                  - Europe/Bratislava
+                                  - Europe/Brussels
+                                  - Europe/Prague
+                                  - Europe/Rome
+                                  - Europe/Helsinki
+                                  - Pacific/Kiritimati
+                                  - Pacific/Midway
+                                  - Pacific/Tongatapu
+                                  - Australia/Melbourne
+                                  - Australia/NSW
+                                  - Australia/Queensland
+                                  - Australia/South
+                                  - Australia/Victoria
+                                  - Australia/West
+                                  - Australia/Canberra
+                example:
+                  code: '0000-0000'
+                  description: 'The equipment in cabinet 0101 is intermittently disconnecting and affecting service availability.'
+                  attachments:
+                    - id: '73de4b3e-1cf1-4bdd-92f4-8601c528374e'
+                      name: 'sample-attachment.txt'
+                  customerReferenceId: 'PO-123456789'
+                  primaryId: '4-123456789'
+                  occurredDateTime: '2026-08-17T07:23:00Z'
+                  callMeFromCage: true
+                  details:
+                    submarineEngineerRequired: true
+                  contacts:
+                    - type: TECHNICAL
+                      registeredUsers:
+                        - 'technical_user'
+                    - type: NOTIFICATION
+                      firstName: John
+                      lastName: Doe
+                      details:
+                        - type: PHONE
+                          value: '+31-82584721'
+                          workPhonePrefToCall: 'During my business hours'
+                          workPhoneTimeZone: 'Pacific/Midway'
+                        - type: EMAIL
+                          value: 'email@testdomain.com'
+                        - type: MOBILE
+                          value: '+81-82584721'
+                          secondaryPhonePrefToCall: 'During my business hours'
+                          secondaryPhoneTimeZone: 'Pacific/Midway'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets':
+    post:
+      tags:
+        - Case
+      operationId: submitCase
+      summary: Create case
+      description: |
+        Creates a new case using the specified ticket code and request details.
+        To ensure a valid request, first use GET /support/v2/tickets/codes to identify the
+        appropriate ticket code, then use GET /support/v2/tickets/codes/{code}/schema
+        to retrieve the fields, required values, data types, and validation rules applicable to
+        that ticket code.
+
+        Build the request payload based on the returned request payload schema and submit it using
+        this operation. The request schema is ticket code specific and should be treated as the
+        source of truth for the payload structure.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Case'
+            examples:
+              MinimalRequiredFields:
+                summary: Minimal request with only the required fields
+                value:
+                  code: '0007-0001'
+                  description: 'Enter description of the issue here.'
+              WithAttachmentsAndContacts:
+                summary: Request with attachments and multiple contact types
+                value:
+                  code: '0007-0001'
+                  customerReferenceId: '111111111'
+                  description: 'Enter description of the issue here.'
+                  primaryId: '36_0208802724'
+                  attachments:
+                    - id: '50d76239-d874-4aa3-8cc3-18e394de5e91'
+                      name: 'MicrosoftTeams-image.png'
+                  contacts:
+                    - registeredUsers:
+                        - john_doe
+                        - jane_smith
+                      type: TECHNICAL
+                    - registeredUsers:
+                        - john_doe
+                      type: NOTIFICATION
+              WithNestedDetails:
+                summary: Request with code-specific nested details
+                value:
+                  code: '0007-0001'
+                  customerReferenceId: 'CustomerReference001'
+                  description: 'Enter description of the issue here.'
+                  primaryId: 'c4d53b61-d408-41aa-a93f-24cb0bb311d9'
+                  occurredDateTime: '2023-08-29T04:01:43.000Z'
+                  contacts:
+                    - type: TECHNICAL
+                      registeredUsers:
+                        - technical_contact
+                  attachments:
+                    - id: c77c5f58-a7ea-4e88-9fc4-1a2900027425
+                      name: error-log.txt
+                  details:
+                    severity: P1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+              examples:
+                CaseCreated:
+                  summary: Case created
+                  value:
+                    id: '11150929'
+                    type: CASE
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets/{id}':
+    get:
+      tags:
+        - Case
+      operationId: getCaseDetailsById
+      summary: Get Case Details
+      description: |
+        Retrieves detailed information for a case using its case or order number.
+        The response includes the current status, contacts, notes, attachments, related products and other case-specific details.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 'Case or Order Number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseOrOrderNumber'
+          examples:
+            CaseNumber:
+              summary: Case number
+              value: '11150929'
+            OrderNumber:
+              summary: Order number
+              value: '1-204976070710'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleCaseResponseV2'
+              examples:
+                CaseDetails:
+                  summary: Case details
+                  value:
+                    id: '11150929'
+                    accountNumber: '182389736'
+                    accountName: 'VjT Existing Reseller New BA'
+                    customerReferenceId: 'CustomerReference001'
+                    channel: PORTAL
+                    orderId: '1-204976070710'
+                    location:
+                      ibx:
+                        - SV5
+                    status: IN_PROGRESS
+                    contacts:
+                      - firstName: John
+                        lastName: Doe
+                        type: TECHNICAL
+                        details:
+                          - type: EMAIL
+                            value: 'SomeContact@email.com'
+                    notes:
+                      - id: 'a067i000007miaAAAQ'
+                        createdDateTime: '2023-08-29T04:01:43.000Z'
+                        text: 'This is a note.'
+                        type: CUSTOMER_NOTES
+                    attachments:
+                      - id: 'c77c5f58-a7ea-4e88-9fc4-1a2900027425'
+                        name: 'error-log.txt'
+                        source: CUSTOMER
+                    email:
+                      - id: '02s7z00000D30lZAAR'
+                        createdDateTime: '2023-08-29T04:01:43.000Z'
+                        subject: 'Issue with device'
+                        authorName: 'Ali bin Carud'
+                        fromAddress: 'abc@equinix.com'
+                        toAddress: 'xyz@example.com'
+                    createdDateTime: '2023-08-29T04:01:43.000Z'
+                    otherDetails:
+                      recordType: ECM
+                      subChannel: ECP
+                      category: 'Trouble Services'
+                      subCategory: Incident
+                      description: 'Sample description.'
+                      updatedDateTime: '2023-08-29T04:01:43.000Z'
+                      statusHistory:
+                        - status: SUBMITTED
+                          createdDate: '2023-08-29T04:01:43.000Z'
+                        - status: IN_PROGRESS
+                          createdDate: '2023-08-29T06:15:10.000Z'
+                      modifiable: false
+                      reOpen: false
+                      cancellable: true
+                      respond: true
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets/{id}/notes':
+    post:
+      tags:
+        - Case
+      operationId: modifyCaseById
+      summary: Modify Case
+      description: |
+        Adds a note and optional attachments to an existing case.
+        To include attachments, first upload each file with the [Attachments File](/api-catalog/attachmentsv1/#tag/Attachments/operation/createAttachment) endpoint, then reference the returned values in the `attachments` array: `attachmentId` maps to `id` and `attachmentName` maps to `name`. Do not set the `purpose` query parameter on the upload request; it is not used for support cases.
+        Use this operation to provide additional information, updates, or supporting details related to the case.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 'Case or Order Number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseOrOrderNumber'
+          examples:
+            CaseNumber:
+              summary: Case number
+              value: '11150929'
+            OrderNumber:
+              summary: Order number
+              value: '1-204976070710'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyCase'
+            examples:
+              CompletePayload:
+                value:
+                  attachments:
+                    - id: 'c77c5f58-a7ea-4e88-9fc4-1a2900027425'
+                      name: 'error-log.txt'
+                  text: 'This is a test notes!'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModifyTicketResponse'
+              examples:
+                NoteAdded:
+                  summary: Note added to the case
+                  value:
+                    ticketId: '11150929'
+                    success: true
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets/{id}/cancel':
+    post:
+      tags:
+        - Case
+      operationId: cancelCaseById
+      summary: Cancel Case
+      description: |
+        Cancels an existing case using its case or order number.
+        A cancellation reason must be provided to explain why the case is being cancelled.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 'Case or Order Number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseOrOrderNumber'
+          examples:
+            CaseNumber:
+              summary: Case number
+              value: '11150929'
+            OrderNumber:
+              summary: Order number
+              value: '1-204976070710'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelCase'
+            examples:
+              CompletePayload:
+                value:
+                  reason: 'This is a sample reason!'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelCaseResponse'
+              examples:
+                CaseCancelled:
+                  summary: Case cancelled
+                  value:
+                    status: OK
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v1/tickets/{caseNumber}/notes':
+    post:
+      tags:
+        - Case
+      operationId: modifyTicketDetailsByCaseNumber
+      deprecated: true
+      summary: Modify a case by case number
+      description: This endpoint is deprecated. To add or update details for a case,
+        please use the [Modify Case](#tag/Case/operation/modifyCaseById) endpoint to add or update details to a case.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: caseNumber
+          in: path
+          description: 'Case number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseNumber'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyCase'
+            examples:
+              CompletePayload:
+                value:
+                  attachments:
+                    - id: 'c77c5f58-a7ea-4e88-9fc4-1a2900027425'
+                      name: 'error-log'
+                  text: 'This is a test notes!'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModifyCaseResponse'
+              examples:
+                NoteAdded:
+                  summary: Note added to the case
+                  value:
+                    result:
+                      caseId: '5007i00000AUPOIAA5'
+                      caseNotesId: 'a067i000007miaAAAQ'
+                      caseNumber: '11150929'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v2/tickets/attachment/download/{caseId}/{attachmentId}':
+    get:
+      tags:
+        - Case
+      operationId: downloadAttachment
+      deprecated: true
+      summary: Download an attachment by case ID and attachment ID
+      description:
+        This endpoint is deprecated. Please use the [Download Attachment](/api-catalog/attachmentsv1/#tag/Attachments/operation/getAttachedFile)
+        endpoint to download attachments.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: caseId
+          in: path
+          description: 'Case Number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseNumber'
+        - name: attachmentId
+          in: path
+          description: 'Attachment ID.'
+          required: true
+          schema:
+            type: string
+          example: 'c77c5f58-a7ea-4e88-9fc4-1a2900027425'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream: # or the real MIME type, e.g. image/png, application/pdf
+              schema:
+                type: string
+                format: binary
+            Content-Disposition:
+              schema:
+                example: 'attachment'
+                type: string # e.g. attachment; filename="report.pdf"
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/support/v1/tickets/emailDetails/{emailId}/caseNumber/{caseNumber}':
+    get:
+      tags:
+        - Case
+      operationId: getEmailDetailsByCaseNumber
+      deprecated: true
+      summary: Get email details by email ID and case number
+      description: 'This endpoint is deprecated. This method retrieves email details by email ID and case number.'
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: caseNumber
+          in: path
+          description: 'Case Number.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/CaseNumber'
+        - name: emailId
+          in: path
+          description: 'Email ID.'
+          required: true
+          schema:
+            $ref: '#/components/schemas/EmailId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailDetailsResponse'
+              examples:
+                EmailDetails:
+                  summary: Email details
+                  value:
+                    orderId: '11768081'
+                    createdDateTime: '2026-06-26T08:27:45.000+0000'
+                    subject: 'Portal Support Ticket: General Inquiry - Case 11768081'
+                    emailContent: '<p>Please provide an update on this case.</p>'
+                    fromAddress: 'abc@equinix.com'
+                    toAddress: 'xyz@example.com'
+                    ccAddress: 'opq@example.com'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TicketCodeList:
+      title: Ticket Code List
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          description: 'Ticket codes on the current page.'
+          items:
+            $ref: '#/components/schemas/TicketCode'
+        pagination:
+          $ref: '#/components/schemas/TicketCodePagination'
+    TicketCodePagination:
+      title: Ticket Code Pagination
+      type: object
+      description: 'Pagination details for the ticket codes returned in `data`.'
+      required:
+        - total
+        - offset
+        - limit
+      properties:
+        total:
+          type: integer
+          description: 'Total number of ticket codes matching the request across all pages.'
+          example: 150
+        offset:
+          type: integer
+          description: 'Zero-based index of the first item on the current page.'
+          example: 10
+        limit:
+          type: integer
+          description: 'Maximum number of items returned per page.'
+          example: 10
+        next:
+          type: string
+          description: 'Relative URL of the next page. Omitted from the response when the current page is the last page.'
+          example: '/support/v2/tickets/codes?limit=10&offset=20'
+        previous:
+          type: string
+          description: 'Relative URL of the previous page. Omitted from the response when the current page is the first page.'
+          example: '/support/v2/tickets/codes?limit=10&offset=0'
+    TicketCode:
+      title: Ticket Code
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'Unique ticket code identifier (e.g. "0301-0000").'
+          example: '0301-0000'
+        classification:
+          type: string
+          nullable: true
+          description: 'Hierarchical classification in the format `<Category>-<Sub-Category>-<Issue Type>`.'
+          example: 'COLOCATION_IBX_DATA_CENTERS-IBX_SUPPORT-IBX_FACILITY_INQUIRY'
+        description:
+          type: string
+          nullable: true
+          description: 'Human-readable description of the support ticket type.'
+          example: 'Submit a general inquiry or support request related to the physical Equinix IBX data center facility and operations.'
+        status:
+          type: string
+          nullable: true
+          enum:
+            - active
+            - deprecated
+          description: 'Lifecycle status of the ticket code.'
+          example: 'active'
+        deprecation:
+          $ref: '#/components/schemas/TicketCodeDeprecation'
+    TicketCodeDeprecation:
+      title: Ticket Code Deprecation Info
+      type: object
+      nullable: true
+      description: 'Present when `status` is `deprecated`; null otherwise.'
+      properties:
+        sunsetAt:
+          type: string
+          format: date-time
+          description: 'ISO 8601 date-time after which this code will no longer be accepted.'
+          example: '2027-04-07T00:00:00Z'
+        successor:
+          type: string
+          nullable: true
+          description: 'Replacement ticket code, or null if no direct successor exists.'
+          example: '0102-0700'
+    Case:
+      title: Create Case Request Payload
+      required:
+        - code
+        - description
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'Ticket code. See GET /support/v2/tickets/codes for the list of valid ticket codes, and GET /support/v2/tickets/codes/{code}/schema for the required fields for a given ticket code.'
+          example: '0200-0000'
+        description:
+          minLength: 1
+          maxLength: 4000
+          type: string
+          description: 'Description of the issue.'
+          example: 'The device is overheating and causing performance issues.'
+        primaryId:
+          type: string
+          description: 'Primary reference identifier.'
+          minLength: 1
+          maxLength: 100
+          example: 'c4d53b61-d408-41aa-a93f-24cb0bb311d9'
+        secondaryId:
+          type: string
+          description: 'Secondary reference identifier.'
+          minLength: 1
+          maxLength: 100
+          example: 'CH1'
+        occurredDateTime:
+          type: string
+          format: date-time
+          example: '2020-05-22T19:23:51Z'
+          description: 'Date and time the issue occurred.'
+        customerReferenceId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: 'Customer or external reference number.'
+          example: 'CustomerReference001'
+        attachments:
+          type: array
+          minItems: 0
+          maxItems: 5
+          description: 'Supporting files to attach in the case, such as a picture of a broken device.'
+          items:
+            $ref: '#/components/schemas/Attachment'
+        contacts:
+          type: array
+          description: 'List of persons who will be contacted for this case.'
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/ContactRequestRegisteredUser'
+              - $ref: '#/components/schemas/ContactRequestNonRegisteredUser'
+        details:
+          type: object
+          description: 'Additional details or requirements for case resolution. The shape depends on the ticket code — see GET /support/v2/tickets/codes/{code}/schema for the fields applicable to a given code.'
+      description: 'A case is a record of an issue in the system.'
+    ContactRequestRegisteredUser:
+      required:
+        - registeredUsers
+        - type
+      type: object
+      properties:
+        registeredUsers:
+          type: array
+          maxItems: 10
+          description: 'Usernames of the registered users. A username may or may not be an email address.'
+          items:
+            type: string
+            example: john_doe
+        type:
+          $ref: '#/components/schemas/TypeOfTheContact'
+      description: 'Contact information of a registered user. Ensure that the user status of this contact is approved, active or locked.'
+    ContactRequestNonRegisteredUser:
+      required:
+        - details
+        - type
+      type: object
+      properties:
+        firstName:
+          $ref: '#/components/schemas/FirstNameOfTheContact'
+        lastName:
+          $ref: '#/components/schemas/LastNameOfTheContact'
+        type:
+          $ref: '#/components/schemas/TypeOfTheContact'
+        details:
+          type: array
+          minItems: 2
+          maxItems: 3
+          description: 'Reference of the related party, could be a party reference or a party role reference.'
+          items:
+            $ref: '#/components/schemas/ContactsRequestDetails'
+      description: 'Contact information of a non-registered contact, including contact details.'
+    ContactsRequestDetails:
+      required:
+        - type
+        - value
+      type: object
+      properties:
+        type:
+          type: string
+          description: 'Communication type.'
+          example: PHONE
+          enum:
+            - EMAIL
+            - MOBILE
+            - PHONE
+        value:
+          type: string
+          description: 'Unique identifier of related type.'
+          example: +1-4601231122
+      description: 'Contact details.'
+    TypeOfTheContact:
+      type: string
+      example: 'NOTIFICATION'
+      description: 'Role of the contact on the case: NOTIFICATION for updates regarding the case, ORDERING for order-related communication, or TECHNICAL for technical coordination.'
+      enum:
+        - NOTIFICATION
+        - ORDERING
+        - TECHNICAL
+    FirstNameOfTheContact:
+      type: string
+      example: 'John'
+      description: 'Given name of the person Equinix should contact regarding the case.'
+    LastNameOfTheContact:
+      type: string
+      example: 'Don'
+      description: 'Last name of the person Equinix should contact regarding the case.'
+    Attachment:
+      type: object
+      description: 'Attachment refers to extensions or additional parts that is or may be attached to something (agreements, contracts, appointments) to perform a particular function. They can be communication attachments, documents and other.'
+      properties:
+        id:
+          type: string
+          minLength: 36
+          maxLength: 36
+          example: 'c77c5f58-a7ea-4e88-9fc4-1a2900027425'
+          description: 'UUID of the uploaded attachment. Use the attachmentId returned by the Attachment API.'
+        name:
+          type: string
+          minLength: 5
+          maxLength: 100
+          example: 'error-log.txt'
+          description: 'File name of the uploaded attachment, including the extension. Use the attachmentName returned by the Attachment API.'
+        source:
+          type: string
+          enum:
+            - 'CUSTOMER'
+            - 'EQUINIX'
+          example: 'CUSTOMER'
+          description: 'Source of the attachment: CUSTOMER if provided by the customer, or EQUINIX if added by Equinix.'
+    Attachments:
+      type: array
+      minItems: 0
+      maxItems: 5
+      description: 'File(s) attached to the case. e.g. picture of broken device, scanning of a bill or charge, etc...'
+      items:
+        $ref: '#/components/schemas/Attachment'
+    Emails:
+      type: array
+      minItems: 0
+      description: 'Email conversation(s) attached to the case. e.g. email conversation with a technician, email conversation with a customer, etc...'
+      items:
+        $ref: '#/components/schemas/Email'
+    Email:
+      type: object
+      description: 'Email conversation attached to the case. e.g. email conversation with a technician, email conversation with a customer, etc...'
+      properties:
+        id:
+          type: string
+          example: '02s7z00000D30lZAAR'
+          description: 'Identifier of the email.'
+        createdDateTime:
+          type: string
+          format: date-time
+          example: '2023-08-29T04:01:43.000Z'
+          description: 'Date and time the email was created.'
+        subject:
+          type: string
+          example: 'Issue with device'
+          description: 'Subject of the email.'
+        authorName:
+          type: string
+          example: 'Ali bin Carud'
+          description: 'Name of the email author.'
+        fromAddress:
+          type: string
+          example: 'abc@equinix.com'
+          description: 'Email address of the email author.'
+        toAddress:
+          type: string
+          example: 'xyz@example.com'
+          description: 'Email address of the email recipient.'
+    TicketResponse:
+      title: Create Case Request Response
+      required:
+        - id
+        - type
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/CaseOrOrderNumber'
+        type:
+          type: string
+          example: 'CASE'
+          description: 'Support Ticket type.'
+          enum:
+            - 'CASE'
+            - 'TROUBLE'
+    AccountName:
+      type: string
+      example: 'VjT Existing Reseller New BA'
+      description: 'User account name.'
+    AccountNumber:
+      maxLength: 100
+      minLength: 6
+      type: string
+      example: '182389736'
+      description: 'User account number.'
+    OrderNumber:
+      maxLength: 100
+      minLength: 14
+      type: string
+      description: 'Unique identifier assigned to an order, used to retrieve or reference the case associated with it.'
+      example: '1-204976070710'
+    CaseOrOrderNumber:
+      type: string
+      minLength: 8
+      maxLength: 100
+      example: '11150929'
+      description: 'Unique identifier used to retrieve a case, provided as either the case number or the order number.'
+    StatusResponse:
+      type: string
+      example: 'IN_PROGRESS'
+      description: 'Case status.'
+      enum:
+        - SUBMITTED
+        - IN_PROGRESS
+        - RESOLVED
+        - ACTION_REQUIRED
+        - CLOSED
+        - CANCELLED
+    ContactResponse:
+      type: object
+      properties:
+        firstName:
+          $ref: '#/components/schemas/FirstNameOfTheContact'
+        lastName:
+          $ref: '#/components/schemas/LastNameOfTheContact'
+        type:
+          $ref: '#/components/schemas/TypeOfTheContact'
+        details:
+          description: 'Contact details of the person, such as email, mobile or phone.'
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: 'EMAIL'
+                description: 'Communication type.'
+                enum:
+                  - EMAIL
+                  - MOBILE
+                  - PHONE
+              value:
+                type: string
+                example: 'SomeContact@email.com'
+                description: 'Corresponding value according to the Communication Type.'
+    SingleCaseResponseV2:
+      title: Get a Case by Case or Order Number Response
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/CaseOrOrderNumber'
+        accountNumber:
+          $ref: '#/components/schemas/AccountNumber'
+        accountName:
+          $ref: '#/components/schemas/AccountName'
+        customerReferenceId:
+          type: string
+          example: 'EESkFTupLmnF6KinbARfNgWAC2V1BZbDZKluF5TI5YVTXTfGkF'
+          description: 'Additional information for customer to reference.'
+        channel:
+          type: string
+          example: 'PORTAL'
+          enum:
+            - OFFLINE
+            - PORTAL
+          description: 'Channel through which the case was created.'
+        orderId:
+          $ref: '#/components/schemas/OrderNumber'
+        location:
+          description: 'Location details of the case.'
+          type: object
+          properties:
+            ibx:
+              type: array
+              items:
+                type: string
+                description: 'IBX'
+                example: 'SV5'
+              description: 'IBX location(s).'
+        status:
+          $ref: '#/components/schemas/StatusResponse'
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactResponse'
+          description: 'List of individuals associated with the case who are contacted regarding it.'
+        notes:
+          description: 'Notes added to the case.'
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                description: 'Identifier of the note.'
+                type: string
+                example: 'ID of the note'
+              createdDateTime:
+                $ref: '#/components/schemas/Datetime'
+              text:
+                type: string
+                description: 'The content of the note.'
+                example: 'This is a note.'
+              type:
+                type: string
+                description: 'The type of the note.'
+                enum:
+                  - RESOLUTION_NOTES
+                  - CUSTOMER_NOTES
+                example: 'RESOLUTION_NOTES'
+        attachments:
+          $ref: '#/components/schemas/Attachments'
+        email:
+          $ref: '#/components/schemas/Emails'
+        createdDateTime:
+          $ref: '#/components/schemas/Datetime'
+        otherDetails:
+          description: 'Additional details of the case, such as category, status history and product line items.'
+          type: object
+          properties:
+            contactUCMID:
+              description: 'Identifier of the case contact.'
+              type: string
+              example: '236284'
+            recordType:
+              description: 'Channel through which the case was created.'
+              type: string
+              example: 'ECM'
+              enum:
+                - ECM
+                - GSD Case
+            subChannel:
+              description: 'Sub-channel through which the case was created.'
+              type: string
+              example: 'ECP'
+              enum:
+                - ECP
+            finalScheduledDate:
+              $ref: '#/components/schemas/Datetime'
+            category:
+              description: 'Category of the case.'
+              type: string
+              example: 'Trouble Services'
+            subCategory:
+              description: 'Sub-category of the case.'
+              type: string
+              example: 'Incident'
+            description:
+              description: 'Description of the case.'
+              type: string
+              example: 'Sample description.'
+            updatedDateTime:
+              $ref: '#/components/schemas/Datetime'
+            updatedByFullName:
+              description: 'Identifier of the user who last updated the case.'
+              type: string
+              example: '0052H000003iLJjQAM'
+            requestedTerminationDate:
+              description: 'Date on which termination of the service is requested.'
+              type: string
+              example: '2026-09-01'
+              format: date
+            statusHistory:
+              description: 'History of the status changes of the case.'
+              type: array
+              items:
+                type: object
+                properties:
+                  status:
+                    $ref: '#/components/schemas/StatusResponse'
+                  createdDate:
+                    $ref: '#/components/schemas/Datetime'
+            purchaseOrders:
+              description: 'Purchase order numbers associated with the case.'
+              type: array
+              items:
+                type: string
+                example: 'PO.1234'
+            products:
+              description: 'Products associated with the case.'
+              type: array
+              items:
+                type: string
+                example: 'SMART_HANDS'
+            productOfferingCodes:
+              description: 'Product offering codes associated with the case.'
+              type: array
+              items:
+                type: string
+                example: 'PS00001.PROD'
+            details:
+              description: 'Line items of the case, one per product requested.'
+              type: array
+              items:
+                type: object
+                properties:
+                  lineId:
+                    description: 'Identifier of the line item.'
+                    type: string
+                    example: '1-2RCPXBUV'
+                  parentLineId:
+                    description: 'Identifier of the parent line item.'
+                    type: string
+                    example: '1-2RCPXBUK'
+                  productType:
+                    description: 'Type of the product requested.'
+                    type: string
+                    example: 'SMART_HANDS'
+                    enum:
+                      - SMART_HANDS
+                  productOfferingCode:
+                    description: 'Code of the product offering requested.'
+                    type: string
+                    example: 'PS00001.PROD'
+                  productCode:
+                    description: 'Code of the product requested.'
+                    type: string
+                    example: 'PS00040.ELEM'
+                  productName:
+                    description: 'Name of the product requested.'
+                    type: string
+                    example: 'Other'
+                  status:
+                    description: 'Status of the line item.'
+                    type: string
+                    example: 'SUBMITTED'
+                    enum:
+                      - IN_PROGRESS
+                      - CANCELLED
+                      - SUBMITTED
+                      - CLOSED
+                      - ACTION_REQUIRED
+                      - RESOLVED
+                  reOpen:
+                    description: 'Indicates whether the line item can be reopened.'
+                    type: string
+                    example: 'NOT_ALLOWED'
+                  respond:
+                    description: 'Indicates whether a response can be added to the line item.'
+                    type: boolean
+                    example: true
+                  ibx:
+                    description: 'IBX data center of the line item.'
+                    type: string
+                    example: 'DA3'
+                  cage:
+                    description: 'Cage of the line item.'
+                    type: string
+                    example: 'DA3:01:010315'
+                  requestType:
+                    description: 'Type of request made for the line item.'
+                    type: string
+                    example: 'ADD'
+                    enum:
+                      - ADD
+                  activityId:
+                    description: 'Identifier of the activity associated with the line item.'
+                    type: string
+                    example: '3-216270588333'
+                  purchaseOrder:
+                    description: 'Purchase order associated with the line item.'
+                    type: object
+                    example: {}
+                  estimatedCompletion:
+                    description: 'Estimated completion details of the line item.'
+                    type: object
+                    properties:
+                      originalDateTime:
+                        description: 'Originally estimated date and time of completion.'
+                        type: string
+                        example: '2023-08-29T04:01:43.000Z'
+                        format: date-time
+                  updatedDateTime:
+                    description: 'Date and time the line item was last updated.'
+                    type: string
+                    example: '2023-08-29T04:01:43.000Z'
+                    format: date-time
+                  additionalInfo:
+                    description: 'Additional information about the line item as key-value pairs.'
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          description: 'Name of the additional information entry.'
+                          type: string
+                          example: 'IS_RECURRING'
+                        value:
+                          description: 'Value of the additional information entry.'
+                          type: boolean
+                          example: true
+                  modifiable:
+                    description: 'Indicates whether the line item can be modified.'
+                    type: boolean
+                    example: false
+                  cancellable:
+                    description: 'Indicates whether the line item can be cancelled.'
+                    type: boolean
+                    example: true
+            additionalInfo:
+              description: 'Additional information about the case as key-value pairs.'
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    description: 'Name of the additional information entry.'
+                    type: string
+                    example: 'RECURRING_TYPE'
+                  value:
+                    description: 'Value of the additional information entry.'
+                    type: string
+                    example: 'CHILD'
+            modifiable:
+              description: 'Indicates whether the case can be modified.'
+              type: boolean
+              example: false
+            reOpen:
+              description: 'Indicates whether the case can be reopened.'
+              type: boolean
+              example: false
+            cancellable:
+              description: 'Indicates whether the case can be cancelled.'
+              type: boolean
+              example: true
+            respond:
+              description: 'Indicates whether a response can be added to the case.'
+              type: boolean
+              example: true
+    ModifyCase:
+      title: Modify Case Request Payload
+      required:
+        - text
+      type: object
+      properties:
+        text:
+          maxLength: 4000
+          minLength: 1
+          type: string
+          description: 'Enter any modification details/additional notes to the technician.'
+          example: 'This is a notes!'
+        attachments:
+          $ref: '#/components/schemas/Attachments'
+    ModifyTicketResponse:
+      title: Modify Support Ticket Request Response
+      type: object
+      properties:
+        ticketId:
+          $ref: '#/components/schemas/CaseOrOrderNumber'
+        success:
+          type: boolean
+          example: true
+          description: 'Indicates whether the modification or reply was successful.'
+    CancelCase:
+      title: Cancel Case Request Payload
+      required:
+        - reason
+      type: object
+      properties:
+        reason:
+          maxLength: 4000
+          minLength: 1
+          type: string
+          description: 'Enter any cancellation details.'
+          example: 'This is a reason!'
+    CancelCaseResponse:
+      title: Cancel Case Request Response
+      required:
+        - status
+      type: object
+      properties:
+        status:
+          type: string
+          example: 'OK'
+          description: 'Status of the cancellation request.'
+          enum:
+            - OK
+    Datetime:
+      type: string
+      example: '2023-08-29T04:01:43.000Z'
+      format: date-time
+      description: 'A datetime string with format YYYY-MM-DDTHH:mm:ss.sssZ.'
+    Error:
+      type: array
+      items:
+        required:
+          - errorCode
+          - errorMessage
+        type: object
+        properties:
+          errorCode:
+            type: string
+            example: EQ-2017011
+            description: Error Code
+          errorMessage:
+            type: string
+            example: Error message
+            description: Error Message
+          details:
+            type: string
+            example: Error details
+            description: Error Details
+          correlationId:
+            type: string
+            example: 98f3f6fb1e127b1
+            description: Correlation ID to trace the error back
+          help:
+            type: string
+            example: URL to a help page for the corresponding errorCode
+            description: URL to a help page for the corresponding errorCode
+          additionalInfo:
+            type: array
+            items:
+              $ref: '#/components/schemas/ErrorAdditionalInfo'
+            description: Additional information about the error
+    UnauthorizedError:
+      type: array
+      items:
+        required:
+          - errorCode
+          - errorMessage
+        type: object
+        properties:
+          correlationId:
+            type: string
+            example: 98f3f6fb1e127b1
+            description: Correlation ID to trace the error back
+          errorMessage:
+            type: string
+            example: 'Not authorized to execute this service'
+            description: Error Message
+          errorCode:
+            type: string
+            example: EQ-1610011
+            description: Error Code
+          details:
+            type: string
+            example: Error details
+            description: Error Details
+          help:
+            type: string
+            example: URL to a help page for the corresponding errorCode
+            description: URL to a help page for the corresponding errorCode
+          additionalInfo:
+            type: array
+            items:
+              $ref: '#/components/schemas/ErrorAdditionalInfo'
+            description: Additional information about the error
+    ErrorAdditionalInfo:
+      required:
+        - property
+        - reason
+      type: object
+      properties:
+        property:
+          type: string
+          example: primaryId
+          description: The property that caused the error
+        reason:
+          type: string
+          example: primaryId is mandatory
+          description: The reason why the property caused the error
+    FieldDefinition:
+      type: object
+      description: >
+        Defines the expected structure, data type, and validation rules for a field
+        in the request payload associated with a ticket code. Field definitions can
+        be nested recursively to describe fields within objects and elements within
+        arrays. The applicable fields and validation rules may vary by ticket code.
+      required:
+        - dataType
+        - fieldDescription
+        - required
+      properties:
+        dataType:
+          type: string
+          description: 'Data type of the field in the request payload.'
+          example: string
+          enum:
+            - string
+            - boolean
+            - array
+            - object
+        fieldDescription:
+          type: string
+          description: 'Explains the expected input for the field.'
+          example: Description of the expected input for the field
+        required:
+          type: boolean
+          description: 'Indicates whether this field is required in the request payload.'
+          example: true
+        format:
+          type: string
+          description: 'Specifies the expected format or validation rule for the field.'
+          example: date-time
+        minLength:
+          type: integer
+          description: 'Minimum number of characters allowed for a string field.'
+          example: 1
+        maxLength:
+          type: integer
+          description: 'Maximum number of characters allowed for a string field.'
+          example: 40
+        allowedValues:
+          type: array
+          description: 'List of values accepted for the field, when the field is restricted to a predefined set of values.'
+          items:
+            type: string
+          example:
+            - TECHNICAL
+            - NOTIFICATION
+        constraints:
+          type: object
+          description: 'Additional validation rules for the field. The applicable constraints depend on the field and may include rules such as minItems, maxItems, maxItemsBy, oneOf, or contains.'
+          additionalProperties: true
+          example:
+            maxItems: 5
+        items:
+          $ref: '#/components/schemas/FieldDefinition'
+        fields:
+          type: object
+          description: 'Defines the nested fields of an object. Each property name represents a field in the object and its value contains the corresponding field definition.'
+          additionalProperties:
+            $ref: '#/components/schemas/FieldDefinition'
+    RequestSchemaResponse:
+      type: object
+      description: >
+        The resolved request payload schema for one ticket code. `schema` is a map of
+        field name to FieldDefinition; `example` is one full sample request body matching
+        that schema. Both the set of fields and their sample values vary by ticket code —
+        this structure is generic across all codes, but its content is not.
+      required:
+        - code
+        - schema
+        - example
+      properties:
+        code:
+          type: string
+          description: 'Ticket code, e.g. "0000-0000".'
+          example: '0000-0000'
+        schema:
+          type: object
+          description: 'Provides the request payload schema for the ticket code, including available fields, required flags, and any applicable constraints. The fields and their requirements vary by ticket code. The returned value is the source of truth.'
+          additionalProperties:
+            $ref: '#/components/schemas/FieldDefinition'
+        example:
+          type: object
+          description: 'Illustrative sample request payload for the ticket code. The fields and values vary by ticket code and are provided as a guide only.'
+          additionalProperties: true
+    CaseNumber:
+      maxLength: 8
+      minLength: 8
+      type: string
+      description: 'Case number.'
+      example: '11150929'
+    ModifyCaseResponse:
+      title: Modify Case Request Response
+      required:
+        - result
+      type: object
+      properties:
+        result:
+          type: object
+          description: 'Result of the modification request.'
+          properties:
+            caseId:
+              type: string
+              example: '5007i00000AUPOIAA5'
+            caseNotesId:
+              type: string
+              example: 'a067i000007miaAAAQ'
+            caseNumber:
+              $ref: '#/components/schemas/CaseNumber'
+    EmailId:
+      type: string
+      minLength: 18
+      maxLength: 18
+      example: '02s7z00000D30lZAAR'
+      description: 'Identifier of the email.'
+    EmailDetailsResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          example: '11768081'
+          description: 'Identifier of the order/case the email is associated with.'
+        createdDateTime:
+          type: string
+          format: date-time
+          example: '2026-06-26T08:27:45.000+0000'
+          description: 'Date and time the email was created.'
+        subject:
+          type: string
+          example: 'Portal Support Ticket: General Inquiry -  Case 11768081'
+          description: 'Subject of the email.'
+        emailContent:
+          type: string
+          example: 'Write an email'
+          description: 'HTML Body content of the email.'
+        fromAddress:
+          type: string
+          example: 'abc@equinix.com'
+          description: 'Email address of the email author.'
+        toAddress:
+          type: string
+          example: 'xyz@example.com'
+          description: 'Semi-colon separated email address(es) of the email recipients.'
+        ccAddress:
+          type: string
+          example: 'opq@example.com'
+          description: 'Semi-colon separated email address(es) of the email CC recipients.'
