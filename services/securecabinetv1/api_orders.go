@@ -25,10 +25,17 @@ type ApiCreateOrderRequest struct {
 	ctx                context.Context
 	ApiService         *OrdersApiService
 	orderCreateRequest *OrderCreateRequest
+	idempotencyKey     *string
 }
 
 func (r ApiCreateOrderRequest) OrderCreateRequest(orderCreateRequest OrderCreateRequest) ApiCreateOrderRequest {
 	r.orderCreateRequest = &orderCreateRequest
+	return r
+}
+
+// Optional, caller-provided unique token that makes order creation idempotent. When supplied, retrying the same request with the same key returns the original order result instead of creating a duplicate order. Reusing the same key with a materially different request payload results in a 409 Conflict response.
+func (r ApiCreateOrderRequest) IdempotencyKey(idempotencyKey string) ApiCreateOrderRequest {
+	r.idempotencyKey = &idempotencyKey
 	return r
 }
 
@@ -93,6 +100,9 @@ func (a *OrdersApiService) CreateOrderExecute(r ApiCreateOrderRequest) (*OrderCr
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	if r.idempotencyKey != nil {
+		parameterAddToHeaderOrQuery(localVarHeaderParams, "Idempotency-Key", r.idempotencyKey, "simple", "")
+	}
 	// body params
 	localVarPostBody = r.orderCreateRequest
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
@@ -129,6 +139,17 @@ func (a *OrdersApiService) CreateOrderExecute(r ApiCreateOrderRequest) (*OrderCr
 			return localVarReturnValue, localVarHTTPResponse, newErr
 		}
 		if localVarHTTPResponse.StatusCode == 403 {
+			var v []Error
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 409 {
 			var v []Error
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {

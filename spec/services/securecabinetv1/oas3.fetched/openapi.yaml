@@ -29,6 +29,16 @@ paths:
       description: |
         Order a new Secure Cabinet deployment and recommended additional products at IBX data centers worldwide.
       operationId: createOrder
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: |
+            Optional, caller-provided unique token that makes order creation idempotent. When supplied, retrying the
+            same request with the same key returns the original order result instead of creating a duplicate order.
+            Reusing the same key with a materially different request payload results in a 409 Conflict response.
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdempotencyKey'
       requestBody:
         content:
           application/json:
@@ -61,6 +71,17 @@ paths:
               example:
                 - errorCode: EQ-7000403
                   errorMessage: Forbidden
+                  correlationId: dd270016-e866-4146-9a53-84e5ea65ec06
+        "409":
+          description: |
+            The supplied Idempotency-Key was already used with a materially different request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+              example:
+                - errorCode: EQ-7011409
+                  errorMessage: The provided Idempotency-Key was already used with a different request payload.
                   correlationId: dd270016-e866-4146-9a53-84e5ea65ec06
         "422":
           description: Input validation error
@@ -229,6 +250,13 @@ components:
       type: string
       description: Order Number
       example: 1-126546546546
+    IdempotencyKey:
+      minLength: 1
+      maxLength: 255
+      type: string
+      description: |
+        Caller-provided unique request token used to make order creation idempotent. A UUID is recommended.
+      example: 550e8400-e29b-41d4-a716-446655440000
     Rating:
       type: number
       description: Maximum, combined power draw of all cabinets in your order, measured in kVA. Applicable values, in 0.5 increments, depend on the IBX data center.
